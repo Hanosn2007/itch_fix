@@ -203,6 +203,9 @@ export const actions = wireActions({
   gotButlerdEndpoint: action<{
     endpoint: Endpoint;
   }>(),
+  restartButlerd: action<{
+    reason: string;
+  }>(),
 
   setupStatus: action<{
     icon: string;

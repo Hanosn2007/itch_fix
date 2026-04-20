@@ -244,4 +244,16 @@ export default function (watcher: Watcher) {
       await refreshButlerd(store);
     }
   });
+
+  watcher.on(actions.restartButlerd, async (store, action) => {
+    if (!store.getState().setup.done) {
+      logger.info(
+        `Ignoring butlerd restart request before setup is done (${action.payload.reason})`
+      );
+      return;
+    }
+
+    logger.info(`Restarting butlerd (${action.payload.reason})`);
+    await refreshButlerd(store);
+  });
 }

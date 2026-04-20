@@ -27,6 +27,8 @@ const originalProxyEnv = {
   NO_PROXY: process.env.NO_PROXY,
 };
 
+const LOCAL_BYPASS_RULES = "localhost,127.0.0.1,::1,*.local";
+
 function normalizeProxyString(proxy?: string | null): string | null {
   const trimmed = (proxy || "").trim();
   return trimmed.length > 0 ? trimmed : null;
@@ -40,6 +42,13 @@ function setEnvPair(lowerKey: string, upperKey: string, value?: string | null) {
     delete process.env[lowerKey];
     delete process.env[upperKey];
   }
+}
+
+function effectiveNoProxyForSystemMode() {
+  return (
+    normalizeProxyString(originalProxyEnv.noProxy || originalProxyEnv.NO_PROXY) ||
+    LOCAL_BYPASS_RULES
+  );
 }
 
 export function readEnvironmentProxySettings(
@@ -172,7 +181,25 @@ function applyProcessProxyEnvironment(settings: ProxySettings & { mode: NetworkP
       break;
 
     case "direct":
+      setEnvPair("http_proxy", "HTTP_PROXY", null);
+      setEnvPair("https_proxy", "HTTPS_PROXY", null);
+      setEnvPair("no_proxy", "NO_PROXY", null);
+      break;
+
     case "system":
+      if (settings.proxy) {
+        // Butler does not understand Electron's "system" proxy mode. Export the
+        // resolved system proxy as HTTP(S)_PROXY so child processes inherit it.
+        setEnvPair("http_proxy", "HTTP_PROXY", settings.proxy);
+        setEnvPair("https_proxy", "HTTPS_PROXY", settings.proxy);
+        setEnvPair("no_proxy", "NO_PROXY", effectiveNoProxyForSystemMode());
+      } else {
+        setEnvPair("http_proxy", "HTTP_PROXY", null);
+        setEnvPair("https_proxy", "HTTPS_PROXY", null);
+        setEnvPair("no_proxy", "NO_PROXY", null);
+      }
+      break;
+
     default:
       setEnvPair("http_proxy", "HTTP_PROXY", null);
       setEnvPair("https_proxy", "HTTPS_PROXY", null);
@@ -267,14 +294,14 @@ export async function runNetworkDiagnostics(
   settings?: ProxySettings & { mode: NetworkProxyMode }
 ) {
   const envSettings = readEnvironmentProxySettings(
-    originalProxyEnv as Record<string, string>
+    process.env as Record<string, string>
   );
   const effectiveSettings =
     settings ||
     computeEffectiveProxySettings(
       store.getState().preferences,
       store.getState().system.networkDiagnostics?.detectedProxy,
-      envSettings
+      readEnvironmentProxySettings(originalProxyEnv as Record<string, string>)
     );
   const netSession = session.fromPartition(NET_PARTITION_NAME, {
     cache: false,
@@ -385,6 +412,14 @@ export default function (watcher: Watcher) {
     }
 
     await refreshProxyState(store, "preferences-updated");
+
+    if (store.getState().butlerd.endpoint) {
+      store.dispatch(
+        actions.restartButlerd({
+          reason: "proxy-settings-updated",
+        })
+      );
+    }
   });
 
   watcher.on(actions.runNetworkDiagnostics, async (store, action) => {
