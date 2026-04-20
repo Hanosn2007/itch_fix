@@ -185,10 +185,10 @@ jobs:
         tar -cf ../darwin-arm64.tar .
 
     - name: Upload unsigned artifact
-      if: github.event_name == 'workflow_dispatch'
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: actions/upload-artifact@v6
       with:
-        name: darwin-arm64-unsigned
+        name: darwin-arm64-unsigned-${{ github.run_id }}
         path: artifacts/darwin-arm64.tar
 
   sign-macos:

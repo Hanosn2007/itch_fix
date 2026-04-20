@@ -231,7 +231,9 @@ export interface ItchAppTabs {
   items: TabDataSave[];
 }
 
-export type ProxySource = "os" | "env";
+export type ProxySource = "os" | "env" | "manual" | "direct";
+
+export type NetworkProxyMode = "system" | "env" | "direct" | "manual";
 
 export interface ProxySettings {
   /** if non-null, the proxy specified by the OS (as sniffed by Chromium) */
@@ -239,6 +241,40 @@ export interface ProxySettings {
 
   /** if non-null, where the proxy settings come from */
   proxySource?: ProxySource;
+
+  /** optional bypass rules, passed directly to Electron's proxy layer */
+  proxyBypassRules?: string;
+}
+
+export interface NetworkDiagnostics {
+  updatedAt?: number;
+  lastReason?: string;
+
+  envHttpProxy?: string;
+  envHttpsProxy?: string;
+  envNoProxy?: string;
+
+  detectedProxy?: string;
+  detectedProxySource?: ProxySource;
+
+  effectiveMode?: NetworkProxyMode;
+  effectiveProxy?: string;
+  effectiveProxySource?: ProxySource;
+  effectiveProxyBypassRules?: string;
+
+  dnsItchio?: string;
+  dnsBroth?: string;
+
+  apiPingStatus?: "ok" | "failed" | "unknown";
+  apiPingDetail?: string;
+
+  oauthStatus?: string;
+  oauthBrowserOpenedAt?: number;
+  oauthCallbackReceivedAt?: number;
+  oauthLastError?: string;
+
+  butlerConnectionStatus?: "starting" | "connected" | "unknown";
+  butlerLastError?: string;
 }
 
 export interface SystemState {
@@ -277,6 +313,12 @@ export interface SystemState {
 
   /** if non-null, where the proxy settings come from */
   proxySource?: ProxySource;
+
+  /** if non-null, bypass rules for the active proxy configuration */
+  proxyBypassRules?: string;
+
+  /** current network diagnostics for troubleshooting proxy / OAuth issues */
+  networkDiagnostics?: NetworkDiagnostics;
 
   /** true if we're about to quit */
   quitting?: boolean;
@@ -500,6 +542,15 @@ export interface PreferencesState {
 
   /** enable tabs - if false, use simple interface */
   enableTabs: boolean;
+
+  /** how network traffic should be routed */
+  networkProxyMode: NetworkProxyMode;
+
+  /** proxy rules when manual mode is selected */
+  networkProxyRules?: string;
+
+  /** bypass rules for manual proxy mode */
+  networkProxyBypassRules?: string;
 
   /** the last version of the app we've successfully run a setup of, see https://github.com/itchio/itch/issues/1997 */
   lastSuccessfulSetupVersion: string;

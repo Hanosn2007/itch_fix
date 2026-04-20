@@ -17,11 +17,22 @@ export default reducer<SystemState>(initialState, (on) => {
   });
 
   on(actions.proxySettingsDetected, (state, action) => {
-    const { proxy, source } = action.payload;
+    const { proxy, source, proxyBypassRules } = action.payload;
     return {
       ...state,
       proxy,
       proxySource: source,
+      proxyBypassRules,
+    };
+  });
+
+  on(actions.networkDiagnosticsUpdated, (state, action) => {
+    return {
+      ...state,
+      networkDiagnostics: {
+        ...(state.networkDiagnostics || {}),
+        ...action.payload,
+      },
     };
   });
 
@@ -58,6 +69,26 @@ export default reducer<SystemState>(initialState, (on) => {
     return {
       ...state,
       locationScanProgress: null,
+    };
+  });
+
+  on(actions.spinningUpButlerd, (state, action) => {
+    return {
+      ...state,
+      networkDiagnostics: {
+        ...(state.networkDiagnostics || {}),
+        butlerConnectionStatus: "starting",
+      },
+    };
+  });
+
+  on(actions.gotButlerdEndpoint, (state, action) => {
+    return {
+      ...state,
+      networkDiagnostics: {
+        ...(state.networkDiagnostics || {}),
+        butlerConnectionStatus: "connected",
+      },
     };
   });
 });

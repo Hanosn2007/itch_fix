@@ -12,6 +12,7 @@ import {
   isInternalError,
   getErrorStack,
 } from "common/butlerd/errors";
+import { actions } from "common/actions";
 import { Logger } from "common/logger";
 import { delay } from "main/reactors/delay";
 
@@ -87,6 +88,16 @@ export async function call<Params, Res>(
     logger.debug(`Calling ${rc({} as any)(client).method}`);
     return await client.call(rc, params, setup);
   } catch (e) {
+    const re = asRequestError(e);
+    store.dispatch(
+      actions.networkDiagnosticsUpdated({
+        updatedAt: Date.now(),
+        butlerLastError: re
+          ? `RPC ${re.rpcError.code}: ${re.rpcError.message}`
+          : e.message || "Unknown butlerd error",
+      })
+    );
+
     if (isCancelled(e)) {
       // nvm
     } else if (isAborted(e)) {

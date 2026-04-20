@@ -42,6 +42,15 @@ export default function (watcher: Watcher) {
       if (error) {
         logger.error(`OAuth error: ${error} - ${error_description}`);
         store.dispatch(
+          actions.networkDiagnosticsUpdated({
+            updatedAt: Date.now(),
+            oauthStatus: "callback-error",
+            oauthLastError: error_description
+              ? String(error_description)
+              : `OAuth error: ${error}`,
+          })
+        );
+        store.dispatch(
           actions.loginFailed({
             username: "OAuth",
             error: new Error(
@@ -65,6 +74,14 @@ export default function (watcher: Watcher) {
       }
 
       logger.error(`OAuth callback missing code or state: ${uri}`);
+      store.dispatch(
+        actions.networkDiagnosticsUpdated({
+          updatedAt: Date.now(),
+          oauthStatus: "callback-invalid",
+          oauthLastError:
+            "OAuth callback reached the app, but the code or state parameter was missing.",
+        })
+      );
       return;
     }
 

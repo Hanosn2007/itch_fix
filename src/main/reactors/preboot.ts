@@ -1,13 +1,12 @@
 import { actions } from "common/actions";
-import { NET_PARTITION_NAME } from "common/constants/net";
 import env from "main/env";
 import { elapsed } from "common/format/datetime";
-import { ProxySource, SystemState } from "common/types";
+import { SystemState } from "common/types";
 import { Watcher } from "common/util/watcher";
-import { app, session, protocol } from "electron";
+import { app } from "electron";
 import { mainLogger } from "main/logger";
 import loadPreferences from "main/reactors/preboot/load-preferences";
-import { applyProxySettings } from "main/reactors/proxy";
+import { refreshProxyState } from "main/reactors/proxy";
 import { itchPlatform } from "common/os/platform";
 import { arch } from "main/os/arch";
 import * as path from "path";
@@ -48,31 +47,10 @@ export default function (watcher: Watcher) {
       }
 
       try {
-        const netSession = session.fromPartition(NET_PARTITION_NAME, {
-          cache: false,
-        });
-
-        const envSettings: string =
-          process.env.https_proxy ||
-          process.env.HTTPS_PROXY ||
-          process.env.http_proxy ||
-          process.env.HTTP_PROXY;
-
-        let proxySettings = {
-          proxy: null as string,
-          source: "os" as ProxySource,
-        };
-
-        if (envSettings) {
-          logger.info(`Got proxy settings from environment: ${envSettings}`);
-          proxySettings = {
-            proxy: envSettings,
-            source: "env",
-          };
-          testProxy = true;
-          store.dispatch(actions.proxySettingsDetected(proxySettings));
-        }
-        await applyProxySettings(netSession, proxySettings);
+        const proxySettings = await refreshProxyState(store, "preboot");
+        testProxy =
+          proxySettings.proxySource === "env" ||
+          proxySettings.proxySource === "manual";
       } catch (e) {
         logger.warn(
           `Could not detect proxy settings: ${e ? e.message : "unknown error"}`

@@ -22,6 +22,7 @@ export const initialState = {
   preferOptimizedPatches: false,
   disableBrowser: env.integrationTests ? true : false,
   enableTabs: false,
+  networkProxyMode: "system",
 } as PreferencesState;
 
 export default reducer<PreferencesState>(initialState, (on) => {

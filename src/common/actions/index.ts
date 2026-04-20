@@ -32,6 +32,7 @@ import {
   PackageState,
   PreferencesState,
   ProgressInfo,
+  NetworkDiagnostics,
   ProxySource,
   SystemState,
   SystemTasksState,
@@ -114,8 +115,13 @@ export const actions = wireActions({
 
   proxySettingsDetected: action<{
     /** a valid HTTP(S) proxy string (that could be in $HTTP_PROXY) */
-    proxy: string;
+    proxy?: string;
     source: ProxySource;
+    proxyBypassRules?: string;
+  }>(),
+  networkDiagnosticsUpdated: action<Partial<NetworkDiagnostics>>(),
+  runNetworkDiagnostics: action<{
+    reason: string;
   }>(),
   commonsUpdated: action<Partial<CommonsState>>(),
 
