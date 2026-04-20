@@ -141,6 +141,16 @@ jobs:
       run: |
         node release/package-all.js --os darwin --arch amd64
 
+    - name: Ad-hoc sign app bundle (x64)
+      run: |
+        APP_BUNDLE=$(find artifacts/darwin-amd64 -maxdepth 1 -name "*.app" -print -quit)
+        if [ -z "$APP_BUNDLE" ]; then
+          echo "Could not find macOS app bundle in artifacts/darwin-amd64"
+          exit 1
+        fi
+        codesign --force --deep --sign - "$APP_BUNDLE"
+        codesign --verify -vvvv "$APP_BUNDLE"
+
     - name: Create tarball to preserve symlinks
       if: github.event_name == 'workflow_dispatch'
       run: |
@@ -178,6 +188,16 @@ jobs:
       run: |
         node release/package-all.js --os darwin --arch arm64
 
+    - name: Ad-hoc sign app bundle (arm64)
+      run: |
+        APP_BUNDLE=$(find artifacts/darwin-arm64 -maxdepth 1 -name "*.app" -print -quit)
+        if [ -z "$APP_BUNDLE" ]; then
+          echo "Could not find macOS app bundle in artifacts/darwin-arm64"
+          exit 1
+        fi
+        codesign --force --deep --sign - "$APP_BUNDLE"
+        codesign --verify -vvvv "$APP_BUNDLE"
+
     - name: Create tarball to preserve symlinks
       if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       run: |
@@ -188,7 +208,7 @@ jobs:
       if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: actions/upload-artifact@v6
       with:
-        name: darwin-arm64-unsigned-${{ github.run_id }}
+        name: ${{ github.event_name == 'workflow_dispatch' && 'darwin-arm64-unsigned' || format('darwin-arm64-adhoc-signed-{0}', github.run_id) }}
         path: artifacts/darwin-arm64.tar
 
   sign-macos:
