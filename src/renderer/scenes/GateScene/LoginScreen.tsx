@@ -4,13 +4,28 @@ import { Profile } from "common/butlerd/messages";
 import { Dispatch } from "common/types";
 import React from "react";
 import LoadingCircle from "renderer/basics/LoadingCircle";
+import Link from "renderer/basics/Link";
 import { rcall } from "renderer/butlerd/rcall";
 import { doAsync } from "renderer/helpers/doAsync";
 import { hook } from "renderer/hocs/hook";
+import ProxySettings from "renderer/pages/PreferencesPage/ProxySettings";
+import { Links } from "renderer/scenes/GateScene/styles";
 import watching, { Watcher } from "renderer/hocs/watching";
+import styled from "renderer/styles";
 import { isEmpty } from "underscore";
 import LoginForm from "renderer/scenes/GateScene/LoginForm";
 import RememberedProfiles from "renderer/scenes/GateScene/RememberedProfiles";
+
+const DiagnosticsPanel = styled.div`
+  width: min(680px, calc(100vw - 48px));
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow-y: auto;
+  max-height: 45vh;
+`;
 
 @watching
 class LoginScreen extends React.PureComponent<Props, State> {
@@ -19,6 +34,7 @@ class LoginScreen extends React.PureComponent<Props, State> {
     this.state = {
       loading: true,
       showingSaved: true,
+      showingDiagnostics: false,
       profiles: [],
     };
   }
@@ -48,18 +64,38 @@ class LoginScreen extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const { loading, showingSaved, profiles } = this.state;
+    const { loading, showingSaved, showingDiagnostics, profiles } = this.state;
     if (loading) {
       return <LoadingCircle progress={-1} wide />;
     }
 
-    if (showingSaved) {
-      return (
-        <RememberedProfiles profiles={profiles} showForm={this.showForm} />
-      );
-    } else {
-      return <LoginForm showSaved={this.showSaved} />;
-    }
+    return (
+      <>
+        {showingSaved ? (
+          <RememberedProfiles profiles={profiles} showForm={this.showForm} />
+        ) : (
+          <LoginForm showSaved={this.showSaved} />
+        )}
+
+        <Links>
+          <Link
+            id="toggle-network-diagnostics"
+            label={
+              showingDiagnostics
+                ? "Hide network diagnostics"
+                : "Network & proxy diagnostics"
+            }
+            onClick={this.toggleDiagnostics}
+          />
+        </Links>
+
+        {showingDiagnostics ? (
+          <DiagnosticsPanel>
+            <ProxySettings />
+          </DiagnosticsPanel>
+        ) : null}
+      </>
+    );
   }
 
   showForm = () => {
@@ -67,6 +103,12 @@ class LoginScreen extends React.PureComponent<Props, State> {
   };
   showSaved = () => {
     this.setState({ showingSaved: true });
+  };
+
+  toggleDiagnostics = () => {
+    this.setState((state) => ({
+      showingDiagnostics: !state.showingDiagnostics,
+    }));
   };
 }
 
@@ -77,6 +119,7 @@ interface Props {
 interface State {
   loading: boolean;
   showingSaved: boolean;
+  showingDiagnostics: boolean;
   profiles: Profile[];
 }
 
