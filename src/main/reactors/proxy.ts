@@ -51,6 +51,49 @@ function effectiveNoProxyForSystemMode() {
   );
 }
 
+function systemProxyToEnvProxy(proxy?: string | null): string | null {
+  const normalized = normalizeProxyString(proxy);
+  if (!normalized) {
+    return null;
+  }
+
+  // Electron's resolveProxy() returns tokens like:
+  // "PROXY 127.0.0.1:7897", "HTTPS 127.0.0.1:7897", "SOCKS5 127.0.0.1:7897",
+  // sometimes chained as "PROXY host:port; DIRECT".
+  for (const candidate of normalized.split(";")) {
+    const trimmed = candidate.trim();
+    if (!trimmed || trimmed.toUpperCase() === "DIRECT") {
+      continue;
+    }
+
+    const match = trimmed.match(/^([A-Z0-9_]+)\s+(.+)$/i);
+    if (!match) {
+      if (/^[a-z]+:\/\//i.test(trimmed)) {
+        return trimmed;
+      }
+      return `http://${trimmed}`;
+    }
+
+    const [, schemeToken, address] = match;
+    const scheme = schemeToken.toUpperCase();
+    switch (scheme) {
+      case "PROXY":
+      case "HTTP":
+      case "HTTPS":
+        return `http://${address}`;
+      case "SOCKS":
+      case "SOCKS4":
+        return `socks4://${address}`;
+      case "SOCKS5":
+        return `socks5://${address}`;
+      default:
+        return `http://${address}`;
+    }
+  }
+
+  return null;
+}
+
 export function readEnvironmentProxySettings(
   source: Record<string, string> = process.env as Record<string, string>
 ) {
@@ -190,8 +233,9 @@ function applyProcessProxyEnvironment(settings: ProxySettings & { mode: NetworkP
       if (settings.proxy) {
         // Butler does not understand Electron's "system" proxy mode. Export the
         // resolved system proxy as HTTP(S)_PROXY so child processes inherit it.
-        setEnvPair("http_proxy", "HTTP_PROXY", settings.proxy);
-        setEnvPair("https_proxy", "HTTPS_PROXY", settings.proxy);
+        const envProxy = systemProxyToEnvProxy(settings.proxy);
+        setEnvPair("http_proxy", "HTTP_PROXY", envProxy);
+        setEnvPair("https_proxy", "HTTPS_PROXY", envProxy);
         setEnvPair("no_proxy", "NO_PROXY", effectiveNoProxyForSystemMode());
       } else {
         setEnvPair("http_proxy", "HTTP_PROXY", null);
