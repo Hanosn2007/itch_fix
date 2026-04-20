@@ -179,7 +179,7 @@ jobs:
         node release/package-all.js --os darwin --arch arm64
 
     - name: Create tarball to preserve symlinks
-      if: github.event_name == 'workflow_dispatch'
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       run: |
         cd artifacts/darwin-arm64
         tar -cf ../darwin-arm64.tar .
