@@ -23,6 +23,8 @@ const originalProxyEnv = {
   httpsProxy: process.env.https_proxy,
   HTTP_PROXY: process.env.HTTP_PROXY,
   HTTPS_PROXY: process.env.HTTPS_PROXY,
+  allProxy: process.env.all_proxy,
+  ALL_PROXY: process.env.ALL_PROXY,
   noProxy: process.env.no_proxy,
   NO_PROXY: process.env.NO_PROXY,
 };
@@ -42,6 +44,13 @@ function setEnvPair(lowerKey: string, upperKey: string, value?: string | null) {
     delete process.env[lowerKey];
     delete process.env[upperKey];
   }
+}
+
+function setProxyEnv(proxy?: string | null, noProxy?: string | null) {
+  setEnvPair("http_proxy", "HTTP_PROXY", proxy);
+  setEnvPair("https_proxy", "HTTPS_PROXY", proxy);
+  setEnvPair("all_proxy", "ALL_PROXY", proxy);
+  setEnvPair("no_proxy", "NO_PROXY", noProxy);
 }
 
 function effectiveNoProxyForSystemMode() {
@@ -103,13 +112,17 @@ export function readEnvironmentProxySettings(
   const httpsProxy = normalizeProxyString(
     source.https_proxy || source.HTTPS_PROXY
   );
+  const allProxy = normalizeProxyString(
+    source.all_proxy || source.ALL_PROXY
+  );
   const noProxy = normalizeProxyString(source.no_proxy || source.NO_PROXY);
 
   return {
     httpProxy,
     httpsProxy,
+    allProxy,
     noProxy,
-    proxy: httpsProxy || httpProxy,
+    proxy: httpsProxy || httpProxy || allProxy,
   };
 }
 
@@ -200,9 +213,7 @@ function computeEffectiveProxySettings(
 function applyProcessProxyEnvironment(settings: ProxySettings & { mode: NetworkProxyMode }) {
   switch (settings.mode) {
     case "manual":
-      setEnvPair("http_proxy", "HTTP_PROXY", settings.proxy);
-      setEnvPair("https_proxy", "HTTPS_PROXY", settings.proxy);
-      setEnvPair("no_proxy", "NO_PROXY", settings.proxyBypassRules);
+      setProxyEnv(settings.proxy, settings.proxyBypassRules);
       break;
 
     case "env":
@@ -217,6 +228,11 @@ function applyProcessProxyEnvironment(settings: ProxySettings & { mode: NetworkP
         originalProxyEnv.httpsProxy || originalProxyEnv.HTTPS_PROXY
       );
       setEnvPair(
+        "all_proxy",
+        "ALL_PROXY",
+        originalProxyEnv.allProxy || originalProxyEnv.ALL_PROXY
+      );
+      setEnvPair(
         "no_proxy",
         "NO_PROXY",
         originalProxyEnv.noProxy || originalProxyEnv.NO_PROXY
@@ -224,9 +240,7 @@ function applyProcessProxyEnvironment(settings: ProxySettings & { mode: NetworkP
       break;
 
     case "direct":
-      setEnvPair("http_proxy", "HTTP_PROXY", null);
-      setEnvPair("https_proxy", "HTTPS_PROXY", null);
-      setEnvPair("no_proxy", "NO_PROXY", null);
+      setProxyEnv(null, null);
       break;
 
     case "system":
@@ -234,20 +248,14 @@ function applyProcessProxyEnvironment(settings: ProxySettings & { mode: NetworkP
         // Butler does not understand Electron's "system" proxy mode. Export the
         // resolved system proxy as HTTP(S)_PROXY so child processes inherit it.
         const envProxy = systemProxyToEnvProxy(settings.proxy);
-        setEnvPair("http_proxy", "HTTP_PROXY", envProxy);
-        setEnvPair("https_proxy", "HTTPS_PROXY", envProxy);
-        setEnvPair("no_proxy", "NO_PROXY", effectiveNoProxyForSystemMode());
+        setProxyEnv(envProxy, effectiveNoProxyForSystemMode());
       } else {
-        setEnvPair("http_proxy", "HTTP_PROXY", null);
-        setEnvPair("https_proxy", "HTTPS_PROXY", null);
-        setEnvPair("no_proxy", "NO_PROXY", null);
+        setProxyEnv(null, null);
       }
       break;
 
     default:
-      setEnvPair("http_proxy", "HTTP_PROXY", null);
-      setEnvPair("https_proxy", "HTTPS_PROXY", null);
-      setEnvPair("no_proxy", "NO_PROXY", null);
+      setProxyEnv(null, null);
       break;
   }
 }
@@ -372,6 +380,7 @@ export async function runNetworkDiagnostics(
       lastReason: reason,
       envHttpProxy: envSettings.httpProxy,
       envHttpsProxy: envSettings.httpsProxy,
+      envAllProxy: envSettings.allProxy,
       envNoProxy: envSettings.noProxy,
       detectedProxy,
       detectedProxySource: detectedProxy ? "os" : "direct",

@@ -65,10 +65,10 @@ jobs:
         node release/package-all.js --os windows --arch amd64
 
     - name: Upload unsigned artifact
-      if: github.event_name == 'workflow_dispatch'
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: actions/upload-artifact@v6
       with:
-        name: windows-amd64-unsigned
+        name: ${{ github.event_name == 'workflow_dispatch' && 'windows-amd64-unsigned' || format('windows-amd64-unsigned-{0}', github.run_id) }}
         path: artifacts/windows-amd64/
 
   sign-windows:

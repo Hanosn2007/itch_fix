@@ -252,6 +252,7 @@ export interface NetworkDiagnostics {
 
   envHttpProxy?: string;
   envHttpsProxy?: string;
+  envAllProxy?: string;
   envNoProxy?: string;
 
   detectedProxy?: string;

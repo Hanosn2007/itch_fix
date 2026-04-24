@@ -130,8 +130,8 @@ class ProxySettings extends React.PureComponent<Props> {
         </SettingsGroup>
 
         <div className="small">
-          Use this override when macOS system proxy auto-detection behaves
-          differently from browsers or from TUN / Network Extension traffic.{" "}
+          Use this override when system proxy auto-detection behaves differently
+          from browsers or from VPN / TUN / Network Extension traffic.{" "}
           <a href={urls.proxyDocs}>Learn more</a>
         </div>
 
@@ -190,7 +190,10 @@ class ProxySettings extends React.PureComponent<Props> {
 
           <div className="label">Environment proxy</div>
           <div className="mono">
-            {diagnostics.envHttpsProxy || diagnostics.envHttpProxy || "DIRECT"}
+            {diagnostics.envHttpsProxy ||
+              diagnostics.envHttpProxy ||
+              diagnostics.envAllProxy ||
+              "DIRECT"}
           </div>
         </DiagnosticsGrid>
       </ProxySettingsDiv>
